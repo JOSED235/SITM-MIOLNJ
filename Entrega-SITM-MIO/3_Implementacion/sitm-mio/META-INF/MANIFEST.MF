@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: SITM.Main
+Class-Path: contracts.jar ice-3.7.10.jar
+
