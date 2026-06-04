@@ -5,21 +5,37 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; }
+        html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #f0f0f0; }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <script>
-        var map = L.map('map').setView([3.42, -76.52], 12); // Cali
+        // Configuración de Leaflet con optimizaciones de renderizado
+        var map = L.map('map', {
+            fadeAnimation: false,
+            zoomAnimation: true,
+            markerZoomAnimation: true,
+            updateWhenIdle: true,
+            updateWhenZooming: false
+        }).setView([3.42, -76.52], 12); // Cali
+
+        // Usar un servidor de tiles más rápido o con mejor respuesta
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+            attribution: '© OpenStreetMap',
+            keepBuffer: 2 // Mantener más tiles en memoria para evitar huecos
         }).addTo(map);
 
-        // Forzar el redimensionamiento del mapa después de la carga inicial
-        setTimeout(function() {
+        // Forzar el redimensionamiento del mapa de forma agresiva
+        function fixMapSize() {
             map.invalidateSize();
-        }, 500);
+        }
+        
+        window.addEventListener('load', function() {
+            setTimeout(fixMapSize, 100);
+            setTimeout(fixMapSize, 1000);
+            setTimeout(fixMapSize, 3000);
+        });
 
         var markers = {};
 

@@ -21,29 +21,48 @@ subprojects {
         implementation 'com.zeroc:ice:3.7.10'
     }
 
-    // Tarea para copiar las librerías al directorio build/libs
-    // Usamos un closure {} para diferir la resolución de configuraciones
+    // Configuración para permitir ./gradlew run en los módulos ejecutables
+    if (project.name != 'contracts') {
+        apply plugin: 'application'
+        application {
+            mainClass = 'SITM.Main'
+        }
+        // Ajuste para el visualizador que usa Launcher
+        if (project.name == 'visualizer-client') {
+            application {
+                mainClass = 'SITM.Launcher'
+            }
+        }
+    }
+
+    // Tarea para copiar las librerías al directorio build/libs para soporte java -jar
     tasks.register('copyLibs', Copy) {
-        from { configurations.runtimeClasspath }
+        // Solo copiamos dependencias externas para evitar dependencias circulares con proyectos locales
+        from configurations.runtimeClasspath.filter { it.name.endsWith('.jar') && !it.path.contains('sitm-mio') }
         into "${buildDir}/libs"
     }
 
-    // Tarea específica para asegurar que el visualizador tenga todas las librerías necesarias
-    if (project.name == 'visualizer-client') {
-        tasks.named('build') {
-            dependsOn 'copyLibs'
-        }
+    // Tarea para copiar los jars de proyectos locales (como contracts)
+    tasks.register('copyProjectJars', Copy) {
+        from configurations.runtimeClasspath.filter { it.path.contains('sitm-mio') }
+        into "${buildDir}/libs"
     }
 
-    // Configuración del manifiesto
+    // Asegurar que las librerías se copien al construir
+    tasks.named('assemble') {
+        dependsOn 'copyLibs'
+        dependsOn 'copyProjectJars'
+    }
+
+    // Configuración del manifiesto para soporte java -jar
     jar {
-        // Usamos doFirst para que la resolución de runtimeClasspath ocurra solo al ejecutar la tarea
         doFirst {
-            manifest.attributes(
-                'Main-Class': 'SITM.Main', 
-                'Class-Path': configurations.runtimeClasspath.collect { it.name }.join(' ')
-            )
+            manifest {
+                attributes(
+                    'Main-Class': project.name == 'visualizer-client' ? 'SITM.Launcher' : 'SITM.Main',
+                    'Class-Path': configurations.runtimeClasspath.collect { it.name }.join(' ')
+                )
+            }
         }
     }
-
 }

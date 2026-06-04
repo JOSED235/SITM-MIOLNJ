@@ -2,63 +2,52 @@
 
 Este proyecto es un sistema distribuido de monitoreo y análisis para el SITM-MIO. Utiliza Java 17+, Gradle 7+ y ZeroC Ice 3.7.10.
 
-## Estructura de Compilación y Ejecución
-
-**Importante:** Todas las instrucciones de compilación y ejecución deben realizarse desde la raíz del código fuente:
+## Ubicación de Trabajo
+Todas las instrucciones de compilación y ejecución deben realizarse desde la raíz del código fuente:
 `C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio`
 
-### 1. Compilación General
-Para compilar todos los módulos y generar los archivos JAR:
+## 1. Compilación
+Para compilar todos los módulos:
 ```bash
 ./gradlew build
 ```
-Esto generará los archivos `.jar` en la carpeta `build/libs/` de cada subproyecto.
 
-### 2. Ejecución del Sistema de Monitoreo (Tiempo Real)
-Inicie los componentes en el siguiente orden, cada uno en una terminal nueva parada en la ruta mencionada arriba:
+## 2. Ejecución del Sistema
 
-1.  **Data Center (Persistencia y Reportes):**
-    ```bash
-    java -jar data-center/build/libs/data-center.jar
-    ```
-2.  **Event Processor (Middleware):**
-    ```bash
-    java -jar event-processor/build/libs/event-processor.jar
-    ```
-3.  **Visualizer Client (Interfaz Gráfica):**
-    ```bash
-    # Nota: Requiere entorno gráfico (JavaFX)
-    java -jar visualizer-client/build/libs/visualizer-client.jar
-    ```
-4.  **Bus Simulator (Simulación de Ingesta):**
-    ```bash
-    java -jar bus-simulator/build/libs/bus-simulator.jar data/chunck.csv
-    ```
+He configurado el proyecto para que soporte **dos formas de ejecución**. Elige la que prefieras:
 
-### 3. Ejecución de Experimentos de Velocidad (V1, V2, V3)
+### Opción A: Usando Gradle (Recomendado para desarrollo)
+Es la forma más rápida y segura ya que Gradle gestiona todas las librerías automáticamente.
 
-#### V1 (Monolítica) y V2 (Concurrente)
-```bash
-java -jar speed-calculator/build/libs/speed-calculator.jar v1 data/lines-241-ActiveGT.csv
-java -jar speed-calculator/build/libs/speed-calculator.jar v2 data/lines-241-ActiveGT.csv
-```
+1. **Data Center:** `./gradlew :data-center:run`
+2. **Event Processor:** `./gradlew :event-processor:run`
+3. **Visualizer:** `./gradlew :visualizer-client:run`
+4. **Bus Simulator:** `./gradlew :bus-simulator:run --args="data/chunck.csv"`
 
-#### V3 (Distribuida Master-Worker)
-1.  **Iniciar Workers (puedes iniciar varios):**
-    ```bash
-    java -jar speed-worker/build/libs/speed-worker.jar
-    ```
-2.  **Iniciar Master:**
-    ```bash
-    java -jar speed-master/build/libs/speed-master.jar data/lines-241-ActiveGT.csv
-    ```
+### Opción B: Usando archivos JAR (Recomendado para producción)
+He corregido la configuración para que `java -jar` funcione perfectamente al incluir todas las dependencias en el manifiesto.
 
-## Diagnóstico y Soluciones Comunes
+1. **Data Center:** `java -jar data-center/build/libs/data-center.jar`
+2. **Event Processor:** `java -jar event-processor/build/libs/event-processor.jar`
+3. **Visualizer:** `java -jar visualizer-client/build/libs/visualizer-client.jar`
+4. **Bus Simulator:** `java -jar bus-simulator/build/libs/bus-simulator.jar data/chunck.csv`
 
-- **Visualizador (Mapa):** Se ha corregido el problema donde el mapa se veía cortado o no cargaba completo. Se ajustó el CSS para asegurar que ocupe el 100% de la ventana y se añadió un `map.invalidateSize()` para forzar el refresco tras la carga.
-- **Error de Conexión Ice:** Asegúrese de que el `Data Center` esté corriendo antes que el `Event Processor`, y que este último esté corriendo antes que el `Visualizer` o el `Bus Simulator`.
-- **Librerías JavaFX:** Si al ejecutar el visualizador hay errores de módulos, asegúrese de haber corrido `./gradlew build` recientemente para que las dependencias se copien correctamente.
+---
 
-## Convenciones de Desarrollo
-- Los contratos se definen en `contracts/src/main/slice/sitm.ice`.
-- Al modificar el archivo `.ice`, ejecute `./gradlew :contracts:compileSlice` o simplemente `./gradlew build`.
+## Solución de Problemas y Mejoras Recientes
+
+### Errores de Librerías (Ice/NoClassDefFoundError)
+- **Causa:** Los archivos JAR no incluían las dependencias en su "Class-Path".
+- **Solución:** He actualizado el `build.gradle` para que:
+  1. El plugin `application` habilite las tareas `run`.
+  2. Las tareas `copyLibs` y `copyProjectJars` coloquen todas las dependencias (Ice, Contracts, JavaFX) en la carpeta `build/libs` de cada módulo.
+  3. El manifiesto de cada JAR apunte correctamente a estas librerías.
+
+### Visualizador y Mapa (Optimización Total)
+- **Mapa Cortado:** Se forzó el redimensionamiento del mapa en 3 tiempos diferentes durante la carga para asegurar que llene el 100% del `WebView`.
+- **Lag:** Se desactivaron las animaciones de zoom y fade de Leaflet, y se configuró un buffer de tiles más agresivo para evitar huecos en blanco.
+- **JavaFX Runtime:** Se utiliza la clase `SITM.Launcher` para iniciar la aplicación, solucionando el error de "runtime components are missing".
+
+## Convenciones
+- Los contratos están en `contracts/src/main/slice/sitm.ice`.
+- Tras cambiar el `.ice`, ejecute `./gradlew build`.

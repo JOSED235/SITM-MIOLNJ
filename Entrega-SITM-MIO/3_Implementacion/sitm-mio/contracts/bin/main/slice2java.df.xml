@@ -1,0 +1,31 @@
+<state>
+  <timestamp value='1780614271389' />
+  <sourceSet name='default'>
+    <source name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\src\main\slice\sitm.ice'>
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\Location.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\Datagram.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\BusUpdate.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\MonitoringSubscriber.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\DatagramReceiver.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\ArchiveService.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\SpeedReport.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\ReportProvider.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\SpeedWorker.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\BusUpdateSeqHelper.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\DatagramSeqHelper.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\SpeedReportSeqHelper.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\MonitoringSubscriberPrx.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\_MonitoringSubscriberPrxI.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\DatagramReceiverPrx.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\_DatagramReceiverPrxI.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\ArchiveServicePrx.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\_ArchiveServicePrxI.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\ReportProviderPrx.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\_ReportProviderPrxI.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\SpeedWorkerPrx.java' />
+      <file name='C:\Users\Fa1097la\OneDrive - Universidad Icesi\Quinto Semestre\Ingesoft 4\Entrega-SITM-MIO\Entrega-SITM-MIO\3_Implementacion\sitm-mio\contracts\build\generated-src\SITM\_SpeedWorkerPrxI.java' />
+    </source>
+    <arg value='C:\Program Files\ZeroC\Ice-3.7.11\\bin\slice2java.exe' />
+    <arg value='-IC:\Program Files\ZeroC\Ice-3.7.11\\slice' />
+  </sourceSet>
+</state>

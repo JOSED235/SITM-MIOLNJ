@@ -13,6 +13,6 @@ dependencies {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'SITM.Main'
+        attributes 'Main-Class': 'SITM.Launcher'
     }
 }
