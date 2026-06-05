@@ -11,10 +11,11 @@ import com.zeroc.Ice.Util;
 
 public class Main {
     public static void main(String[] args) {
-        String csvFile = "data/chunck.csv";
+        String rawFile = "data/chunck.csv";
         if (args.length > 0) {
-            csvFile = args[0];
+            rawFile = args[0];
         }
+        String csvFile = resolvePath(rawFile);
 
         List<String> extArgs = new ArrayList<>();
         try (Communicator communicator = Util.initialize(args, "bus-simulator.cfg", extArgs)) {
@@ -61,5 +62,18 @@ public class Main {
                 System.err.println("Error leyendo CSV: " + e.getMessage());
             }
         }
+    }
+
+    private static String resolvePath(String path) {
+        java.io.File file = new java.io.File(path);
+        if (file.exists()) return path;
+        if (path.startsWith("/opt/sitm-mio/")) {
+            String local = "data/" + path.substring("/opt/sitm-mio/".length());
+            if (new java.io.File(local).exists()) return local;
+        }
+        String fileName = file.getName();
+        String localData = "data/" + fileName;
+        if (new java.io.File(localData).exists()) return localData;
+        return path;
     }
 }

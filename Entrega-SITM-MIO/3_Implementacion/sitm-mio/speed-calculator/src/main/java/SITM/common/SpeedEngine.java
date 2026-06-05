@@ -62,28 +62,37 @@ public class SpeedEngine {
     }
 
     private static Double tripSpeed(List<DatagramRecord> trip) {
+        if (trip.size() < 2) return null;
+
         trip.sort(Comparator.comparing(DatagramRecord::parsedDate,
                 Comparator.nullsLast(Comparator.naturalOrder())));
 
-        List<Double> speeds = new ArrayList<>();
+        double totalDistance = 0;
+        long totalSeconds = 0;
+
         for (int i = 0; i < trip.size() - 1; i++) {
             DatagramRecord a = trip.get(i);
             DatagramRecord b = trip.get(i + 1);
 
-            if (a.odometer < 0 || b.odometer < 0)        continue;
-            if (b.odometer <= a.odometer)                 continue; // reset de parada
-
             LocalDateTime ta = a.parsedDate();
             LocalDateTime tb = b.parsedDate();
-            if (ta == null || tb == null)                 continue;
+            if (ta == null || tb == null) continue;
 
             long secs = Duration.between(ta, tb).getSeconds();
-            if (secs <= 0)                                continue;
+            if (secs <= 0) continue;
 
-            double kmh = ((b.odometer - a.odometer) / (double) secs) * 3.6;
-            if (kmh > 0 && kmh <= 120) speeds.add(kmh);   // descarta valores irreales
+            int dist = b.odometer - a.odometer;
+            // Descartar si el odómetro retrocedió o si la velocidad es absurda (> 120km/h)
+            if (dist > 0) {
+                double kmh = (dist / (double) secs) * 3.6;
+                if (kmh <= 120) {
+                    totalDistance += dist;
+                    totalSeconds += secs;
+                }
+            }
         }
-        if (speeds.isEmpty()) return null;
-        return speeds.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+        if (totalSeconds == 0) return null;
+        return (totalDistance / (double) totalSeconds) * 3.6;
     }
 }

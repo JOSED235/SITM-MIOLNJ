@@ -2,15 +2,17 @@ package SITM.v1;
 
 import java.util.Comparator;
 import java.util.List;
-
 import SITM.common.CsvParser;
+import SITM.common.PathResolver;
 import SITM.common.SpeedEngine;
 import SITM.common.SpeedResult;
 
 public class SpeedCalculatorV1 {
 
     public static void main(String[] args) throws Exception {
-        String csvPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String rawPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String csvPath = PathResolver.resolve(rawPath);
+        
         System.out.println("=== V1 MONOLITICA ===");
         System.out.println("Archivo: " + csvPath);
 

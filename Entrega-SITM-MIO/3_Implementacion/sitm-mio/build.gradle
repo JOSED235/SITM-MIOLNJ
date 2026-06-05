@@ -10,7 +10,7 @@ allprojects {
 
 subprojects {
     apply plugin: 'java'
-    
+
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(17)
@@ -21,47 +21,29 @@ subprojects {
         implementation 'com.zeroc:ice:3.7.10'
     }
 
-    // Configuración para permitir ./gradlew run en los módulos ejecutables
     if (project.name != 'contracts') {
         apply plugin: 'application'
+
         application {
             mainClass = 'SITM.Main'
         }
-        // Ajuste para el visualizador que usa Launcher
+
         if (project.name == 'visualizer-client') {
             application {
                 mainClass = 'SITM.Launcher'
             }
         }
-    }
 
-    // Tarea para copiar las librerías al directorio build/libs para soporte java -jar
-    tasks.register('copyLibs', Copy) {
-        // Solo copiamos dependencias externas para evitar dependencias circulares con proyectos locales
-        from configurations.runtimeClasspath.filter { it.name.endsWith('.jar') && !it.path.contains('sitm-mio') }
-        into "${buildDir}/libs"
-    }
-
-    // Tarea para copiar los jars de proyectos locales (como contracts)
-    tasks.register('copyProjectJars', Copy) {
-        from configurations.runtimeClasspath.filter { it.path.contains('sitm-mio') }
-        into "${buildDir}/libs"
-    }
-
-    // Asegurar que las librerías se copien al construir
-    tasks.named('assemble') {
-        dependsOn 'copyLibs'
-        dependsOn 'copyProjectJars'
-    }
-
-    // Configuración del manifiesto para soporte java -jar
-    jar {
-        doFirst {
-            manifest {
-                attributes(
-                    'Main-Class': project.name == 'visualizer-client' ? 'SITM.Launcher' : 'SITM.Main',
-                    'Class-Path': configurations.runtimeClasspath.collect { it.name }.join(' ')
-                )
+        // El plugin application ya copia todas las dependencias a build/libs
+        // con la tarea installDist / distributions. Solo ajustamos el manifiesto.
+        jar {
+            doFirst {
+                manifest {
+                    attributes(
+                        'Main-Class': project.name == 'visualizer-client' ? 'SITM.Launcher' : 'SITM.Main',
+                        'Class-Path': configurations.runtimeClasspath.collect { it.name }.join(' ')
+                    )
+                }
             }
         }
     }

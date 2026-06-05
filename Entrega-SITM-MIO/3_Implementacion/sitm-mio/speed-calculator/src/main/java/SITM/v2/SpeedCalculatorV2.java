@@ -2,6 +2,7 @@ package SITM.v2;
 
 import SITM.common.CsvParser;
 import SITM.common.DatagramRecord;
+import SITM.common.PathResolver;
 import SITM.common.SpeedEngine;
 import SITM.common.SpeedResult;
 import SITM.v1.SpeedCalculatorV1;
@@ -15,7 +16,9 @@ import java.util.stream.Collectors;
 public class SpeedCalculatorV2 {
 
     public static void main(String[] args) throws Exception {
-        String csvPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String rawPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String csvPath = PathResolver.resolve(rawPath);
+        
         int numThreads = Runtime.getRuntime().availableProcessors();
         System.out.println("=== V2 CONCURRENTE ===");
         System.out.println("Archivo: " + csvPath);

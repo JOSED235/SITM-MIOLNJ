@@ -82,19 +82,37 @@ public class DataWarehouse {
     }
 
     private double calcSpeed(List<Datagram> trip) {
-        Datagram first = trip.get(0);
-        Datagram last  = trip.get(trip.size() - 1);
+        if (trip.size() < 2) return 0;
 
-        double deltaMeters = Math.abs(last.odometer - first.odometer);
+        trip.sort(java.util.Comparator.comparing(d -> parseDate(d.datagramDate),
+                java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())));
 
-        LocalDateTime t1 = parseDate(first.datagramDate);
-        LocalDateTime t2 = parseDate(last.datagramDate);
-        if (t1 == null || t2 == null) return 0;
+        double totalDistance = 0;
+        long totalSeconds = 0;
 
-        long seconds = Math.abs(java.time.Duration.between(t1, t2).getSeconds());
-        if (seconds == 0) return 0;
+        for (int i = 0; i < trip.size() - 1; i++) {
+            Datagram a = trip.get(i);
+            Datagram b = trip.get(i + 1);
 
-        return (deltaMeters / seconds) * 3.6; // m/s -> km/h
+            LocalDateTime ta = parseDate(a.datagramDate);
+            LocalDateTime tb = parseDate(b.datagramDate);
+            if (ta == null || tb == null) continue;
+
+            long secs = java.time.Duration.between(ta, tb).getSeconds();
+            if (secs <= 0) continue;
+
+            int dist = b.odometer - a.odometer;
+            if (dist > 0) {
+                double kmh = (dist / (double) secs) * 3.6;
+                if (kmh <= 120) {
+                    totalDistance += dist;
+                    totalSeconds += secs;
+                }
+            }
+        }
+
+        if (totalSeconds == 0) return 0;
+        return (totalDistance / (double) totalSeconds) * 3.6;
     }
 
     private LocalDateTime parseDate(String raw) {

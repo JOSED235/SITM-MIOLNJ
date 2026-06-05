@@ -18,7 +18,8 @@ import java.util.concurrent.Future;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        String csvPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String rawPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
+        String csvPath = resolvePath(rawPath);
 
         List<String> extArgs = new ArrayList<>();
         try (Communicator communicator = Util.initialize(args, "speed-master.cfg", extArgs)) {
@@ -125,5 +126,18 @@ public class Main {
             }
         }
         return byLine;
+    }
+
+    private static String resolvePath(String path) {
+        java.io.File file = new java.io.File(path);
+        if (file.exists()) return path;
+        if (path.startsWith("/opt/sitm-mio/")) {
+            String local = "data/" + path.substring("/opt/sitm-mio/".length());
+            if (new java.io.File(local).exists()) return local;
+        }
+        String fileName = file.getName();
+        String localData = "data/" + fileName;
+        if (new java.io.File(localData).exists()) return localData;
+        return path;
     }
 }

@@ -66,29 +66,37 @@ public class SpeedWorkerI implements SpeedWorker {
     }
 
     private Double computeTripSpeed(List<Datagram> trip) {
+        if (trip.size() < 2) return null;
+
         trip.sort(Comparator.comparing(d -> parseDate(d.datagramDate),
                 Comparator.nullsLast(Comparator.naturalOrder())));
 
-        List<Double> speeds = new ArrayList<>();
+        double totalDistance = 0;
+        long totalSeconds = 0;
+
         for (int i = 0; i < trip.size() - 1; i++) {
             Datagram a = trip.get(i);
             Datagram b = trip.get(i + 1);
 
-            if (a.odometer < 0 || b.odometer < 0)   continue;
-            if (b.odometer <= a.odometer)            continue;
-
             LocalDateTime ta = parseDate(a.datagramDate);
             LocalDateTime tb = parseDate(b.datagramDate);
-            if (ta == null || tb == null)            continue;
+            if (ta == null || tb == null) continue;
 
             long secs = Duration.between(ta, tb).getSeconds();
-            if (secs <= 0)                           continue;
+            if (secs <= 0) continue;
 
-            double kmh = ((b.odometer - a.odometer) / (double) secs) * 3.6;
-            if (kmh > 0 && kmh <= 120) speeds.add(kmh);
+            int dist = b.odometer - a.odometer;
+            if (dist > 0) {
+                double kmh = (dist / (double) secs) * 3.6;
+                if (kmh <= 120) {
+                    totalDistance += dist;
+                    totalSeconds += secs;
+                }
+            }
         }
-        if (speeds.isEmpty()) return null;
-        return speeds.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+
+        if (totalSeconds == 0) return null;
+        return (totalDistance / (double) totalSeconds) * 3.6;
     }
 
     private LocalDateTime parseDate(String raw) {
