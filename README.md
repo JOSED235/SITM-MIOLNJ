@@ -165,9 +165,8 @@ Esperar a ver: `Speed Worker iniciado en default -h localhost -p 10100`
 
 **Terminal 2 — Worker 1 (puerto 10101):**
 
-En PowerShell, los flags `-D` con espacios en el valor deben ir entre comillas envolviendo **toda** la opción:
 ```powershell
-java "-DSpeedWorker.Endpoints=default -h localhost -p 10101" "-DSpeedWorker.Identity=SpeedWorker1" -jar speed-worker/build/libs/speed-worker.jar
+java -jar speed-worker/build/libs/speed-worker.jar 10101
 ```
 
 Esperar a ver: `Speed Worker iniciado en default -h localhost -p 10101`
