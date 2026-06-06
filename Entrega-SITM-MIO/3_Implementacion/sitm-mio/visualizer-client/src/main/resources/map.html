@@ -3,16 +3,34 @@
 <head>
     <title>SITM-MIO Monitoring</title>
     <meta charset="UTF-8">
+    <script>
+        // JavaFX WebView puede renderizar mal los translate3d() que usa Leaflet.
+        // Esta bandera debe definirse antes de cargar Leaflet.
+        window.L_DISABLE_3D = true;
+    </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { overflow: hidden; background: #e0e0e0; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #e0e0e0;
+        }
         #map {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw;
-            height: 100vh;
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: #d8d8d8;
+        }
+        .leaflet-container,
+        .leaflet-pane,
+        .leaflet-tile-pane,
+        .leaflet-map-pane {
+            backface-visibility: visible;
+            transform-style: flat;
         }
     </style>
 </head>
@@ -21,6 +39,7 @@
     <script>
         var markers = {};
         var map = null;
+        var tileLayer = null;
         var pollCount = 0;
 
         /*
@@ -45,18 +64,22 @@
             map = L.map('map', {
                 fadeAnimation: false,
                 zoomAnimation: false,
-                markerZoomAnimation: false
+                markerZoomAnimation: false,
+                preferCanvas: true,
+                updateWhenIdle: true,
+                updateWhenZooming: false
             }).setView([3.42, -76.52], 13);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+                maxZoom: 19,
+                keepBuffer: 6,
+                updateWhenIdle: true,
+                updateWhenZooming: false
             }).addTo(map);
 
             // Alinear tiles una vez que Leaflet ya tiene las dimensiones correctas
-            setTimeout(function() {
-                map.invalidateSize({ animate: false, pan: false });
-            }, 150);
+            scheduleResize();
         }
 
         function forceResize() {
@@ -64,7 +87,18 @@
                 tryInit();
                 return;
             }
-            map.invalidateSize({ animate: false, pan: false });
+            scheduleResize();
+        }
+
+        function scheduleResize() {
+            var delays = [0, 100, 300, 700];
+            for (var i = 0; i < delays.length; i++) {
+                setTimeout(function() {
+                    if (!map) return;
+                    map.invalidateSize({ animate: false, pan: false });
+                    if (tileLayer) tileLayer.redraw();
+                }, delays[i]);
+            }
         }
 
         function updateBus(busId, lat, lng, lineId, time) {
@@ -92,6 +126,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', tryInit);
+        window.addEventListener('resize', forceResize);
     </script>
 </body>
 </html>
