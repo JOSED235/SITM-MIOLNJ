@@ -165,3 +165,68 @@ speed-master arranca:
 | CSS `100vw/100vh` + polling en Leaflet | JS `window.innerWidth/Height` | JavaFX WebView reporta dimensiones 0×0 en el primer ciclo de layout; el polling espera a tener dimensiones reales |
 | Configuración en `.cfg` | Hardcoded en código | Permite cambiar topología de workers sin recompilar (driver de Modificabilidad) |
 | `checkedCast` antes de distribuir | `uncheckedCast` | `checkedCast` verifica que el worker esté activo antes de intentar distribuir; evita `ConnectionRefusedException` tardía |
+| Almacenamiento en memoria (ArrayList) | Archivos o base de datos embebida | Cero dependencias externas para el piloto; toda la lógica de consulta corre sobre la misma estructura JVM |
+| `SpeedEngine` compartido entre V1/V2/SpeedWorkerI | Implementaciones independientes | Un único punto de verdad para el algoritmo garantiza que V1, V2 y V3 producen resultados idénticos |
+
+---
+
+## 6. Evolución desde el Plan Original (4 módulos → 8 módulos)
+
+### Plan de partida entregado
+
+El plan original describía un sistema de **4 módulos** con flujo lineal:
+
+```
+Bus Simulator → Event Processor → Data Center → Visualizer Client
+```
+
+Patrones mencionados en el plan original:
+- **Observer/Pub-Sub** para el flujo de eventos
+- **DTO** para los structs Ice (`Datagram`, `BusUpdate`)
+- **Repository** para el almacenamiento en Data Center
+- **Strategy** para "filtrado configurable" (mencionado como posibilidad)
+
+### Cambios realizados en la implementación
+
+| Elemento del plan original | Estado | Detalle del cambio |
+|---|:---:|---|
+| 4 interfaces Slice en `sitm.ice` | ✅ Completado + expandido | Se añadió `SpeedWorker` + structs `SpeedReport`, secuencias `DatagramSeq`/`SpeedReportSeq` |
+| `bus-simulator` cliente Ice | ✅ Completado + mejorado | Se añadió `PathResolver` para portabilidad Windows/Linux; delay 500 ms (plan decía 20-30 s) |
+| `event-processor` Observer/Pub-Sub | ✅ Completado + corregido | Se eliminó `Thread.sleep(2000)` del bloque `synchronized` que bloqueaba todo el sistema; tolerancia a fallos con `LocalException` |
+| `data-center` ArchiveServiceI + AMI | ✅ Completado | Anotación `["ami"]` en Slice genera `archiveDatagramAsync()` |
+| `data-center` Repository (DataWarehouse) | ✅ Completado (en memoria) | El plan sugería "archivos o BD embebida"; se implementó como `ArrayList<Datagram>` en memoria JVM |
+| `data-center` ReportProviderI | ✅ Completado + extendido | Algoritmo Σ(Δodómetro) / Σ(Δsegundos) × 3.6 con filtros; se añadió `getMonthlyReports(year)` |
+| `visualizer-client` mapa | ✅ Completado (tecnología específica) | El plan no especificaba tecnología; se eligió JavaFX 17 + WebView + Leaflet.js 1.9.4 + OpenStreetMap |
+| Strategy Pattern (filtrado) | ⚠️ Parcial | El filtrado se hace implícitamente: `LocalException` elimina suscriptores caídos; `kmh > 120` filtra atípicos. No se implementó como clase Strategy explícita, pero `SpeedEngine` cumple el rol de algoritmo intercambiable |
+| **Subsistema B completo (V1/V2/V3)** | ✅ **Añadido** | El plan original no contemplaba análisis de velocidades. Se añadieron 4 módulos: `speed-calculator`, `speed-worker`, `speed-master` + interfaz `SpeedWorker` en contratos |
+
+### Por qué se añadió el Subsistema B
+
+El plan original cubría únicamente el monitoreo en tiempo real. Durante el desarrollo se identificó que los **drivers de rendimiento y escalabilidad (E2, E4)** requerían una demostración experimental con tres versiones comparables (baseline secuencial → concurrente → distribuida). El Subsistema B responde directamente a ese requerimiento y valida cuantitativamente el valor de la arquitectura distribuida.
+
+### Diagrama de evolución
+
+```
+PLAN ORIGINAL (4 módulos)          IMPLEMENTACIÓN FINAL (8 módulos)
+─────────────────────────          ────────────────────────────────
+
+contracts (4 interfaces)     →     contracts (5 interfaces + SpeedWorker,
+                                               structs SpeedReport,
+                                               DatagramSeq, SpeedReportSeq)
+
+bus-simulator                →     bus-simulator (+ PathResolver)
+
+event-processor              →     event-processor (sin sleep en synchronized,
+                                               tolerancia a fallos mejorada)
+
+data-center                  →     data-center (en memoria, no BD/archivo)
+
+visualizer-client            →     visualizer-client (JavaFX + WebView
+                                               + Leaflet.js + polling fix)
+
+[no existía]                 →     speed-calculator (V1 secuencial + V2 concurrente)
+
+[no existía]                 →     speed-worker (Servant Ice V3)
+
+[no existía]                 →     speed-master (Coordinador V3 Scatter-Gather)
+```
