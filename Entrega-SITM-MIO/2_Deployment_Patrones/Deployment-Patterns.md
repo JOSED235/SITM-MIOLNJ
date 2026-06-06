@@ -209,7 +209,7 @@ Sea:
 
 | Condición | Ganadora | Razón |
 |-----------|----------|-------|
-| Dataset MiniPilot (100 reg.), 1 máquina | **V2** | Δ_ice >> T_cómputo |
+| Dataset local `chunck.csv` (100 reg.), 1 máquina | **V2** | Δ_ice >> T_cómputo |
 | Dataset completo (9× MiniPilot), 1 máquina | **V2** | Misma CPU, más datos, sin overhead de red |
 | Dataset completo, 2+ máquinas físicas separadas | **V3** | T_cómputo / workers >> Δ_ice |
 

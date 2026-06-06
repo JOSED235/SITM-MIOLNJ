@@ -1,5 +1,6 @@
 package SITM.v2;
 
+import SITM.common.ActiveLinesParser;
 import SITM.common.CsvParser;
 import SITM.common.DatagramRecord;
 import SITM.common.PathResolver;
@@ -10,6 +11,7 @@ import SITM.v1.SpeedCalculatorV1;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -18,10 +20,13 @@ public class SpeedCalculatorV2 {
     public static void main(String[] args) throws Exception {
         String rawPath = args.length > 0 ? args[0] : "/opt/sitm-mio/datagrams-MiniPilot.csv";
         String csvPath = PathResolver.resolve(rawPath);
-        
+
+        Set<Integer> activeLines = ActiveLinesParser.parse(ActiveLinesParser.defaultPath());
+
         int numThreads = Runtime.getRuntime().availableProcessors();
         System.out.println("=== V2 CONCURRENTE ===");
         System.out.println("Archivo: " + csvPath);
+        System.out.println("Rutas activas (lines-241-ActiveGT.csv): " + activeLines.size());
         System.out.println("Hilos disponibles: " + numThreads);
 
         long t0 = System.currentTimeMillis();
@@ -29,9 +34,11 @@ public class SpeedCalculatorV2 {
         List<DatagramRecord> data = CsvParser.parse(csvPath);
         System.out.println("Registros leidos: " + data.size());
 
-        // Particionar por lineId: cada linea se procesa en un hilo distinto
-        Map<Integer, List<DatagramRecord>> byLine =
-                data.stream().collect(Collectors.groupingBy(d -> d.lineId));
+        // Filtrar por rutas activas y particionar por lineId
+        Map<Integer, List<DatagramRecord>> byLine = data.stream()
+                .filter(d -> activeLines.contains(d.lineId))
+                .collect(Collectors.groupingBy(d -> d.lineId));
+        System.out.println("Rutas con datos en el dataset: " + byLine.size());
 
         ExecutorService pool = Executors.newFixedThreadPool(numThreads);
         List<Future<List<SpeedResult>>> futures = new ArrayList<>();

@@ -9,8 +9,10 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -41,14 +43,17 @@ public class Main {
                 System.err.println("No hay workers disponibles. Verifique speed-master.cfg.");
                 return;
             }
+            Set<Integer> activeLines = loadActiveLines();
+
             System.out.println("=== V3 DISTRIBUIDA (Master-Worker) ===");
             System.out.println("Workers activos: " + workers.size());
             System.out.println("Archivo: " + csvPath);
+            System.out.println("Rutas activas (lines-241-ActiveGT.csv): " + activeLines.size());
 
-            // --- 2. Leer y parsear CSV ---
+            // --- 2. Leer y parsear CSV, filtrar por rutas activas ---
             long t0 = System.currentTimeMillis();
-            Map<Integer, List<Datagram>> byLine = readAndPartition(csvPath);
-            System.out.println("Lineas activas encontradas: " + byLine.size());
+            Map<Integer, List<Datagram>> byLine = readAndPartition(csvPath, activeLines);
+            System.out.println("Rutas con datos en el dataset: " + byLine.size());
             System.out.println("Total datagramas: " +
                     byLine.values().stream().mapToInt(List::size).sum());
 
@@ -99,7 +104,8 @@ public class Main {
         }
     }
 
-    private static Map<Integer, List<Datagram>> readAndPartition(String csvPath) throws Exception {
+    private static Map<Integer, List<Datagram>> readAndPartition(
+            String csvPath, Set<Integer> activeLines) throws Exception {
         Map<Integer, List<Datagram>> byLine = new HashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(csvPath))) {
             String line;
@@ -107,6 +113,8 @@ public class Main {
                 String[] f = line.split(",");
                 if (f.length < 12) continue;
                 try {
+                    int lineId = Integer.parseInt(f[7].trim());
+                    if (!activeLines.contains(lineId)) continue;
                     Datagram d = new Datagram();
                     d.eventType    = Integer.parseInt(f[0].trim());
                     d.registerDate = f[1].trim();
@@ -115,17 +123,35 @@ public class Main {
                     d.latitude     = Integer.parseInt(f[4].trim());
                     d.longitude    = Integer.parseInt(f[5].trim());
                     d.taskId       = Integer.parseInt(f[6].trim());
-                    d.lineId       = Integer.parseInt(f[7].trim());
+                    d.lineId       = lineId;
                     d.tripId       = Integer.parseInt(f[8].trim());
                     d.unknown1     = (int) Double.parseDouble(f[9].trim());
                     d.datagramDate = f[10].trim();
                     d.busId        = Integer.parseInt(f[11].trim());
-                    byLine.computeIfAbsent(d.lineId, k -> new ArrayList<>()).add(d);
+                    byLine.computeIfAbsent(lineId, k -> new ArrayList<>()).add(d);
                 } catch (NumberFormatException ignored) {
                 }
             }
         }
         return byLine;
+    }
+
+    private static Set<Integer> loadActiveLines() throws Exception {
+        String linesPath = resolvePath("/opt/sitm-mio/lines-241-ActiveGT.csv");
+        Set<Integer> active = new HashSet<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(linesPath))) {
+            String line;
+            boolean firstLine = true;
+            while ((line = br.readLine()) != null) {
+                if (firstLine) { firstLine = false; continue; }
+                String[] f = line.split(",");
+                if (f.length < 1) continue;
+                try {
+                    active.add(Integer.parseInt(f[0].trim().replace("\"", "")));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return active;
     }
 
     private static String resolvePath(String path) {

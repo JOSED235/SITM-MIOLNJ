@@ -6,7 +6,7 @@
 
 ## Contexto del Sistema
 
-El Centro de Control de Operación (CCO) de Metrocali supervisa ~1000 buses que emiten datagramas cada 20-30 s via GPRS. El sistema recibe entre 2.5 y 3 millones de eventos diarios. El piloto cubre un año de datos (~900 M registros anuales estimados) y tiene dos objetivos principales:
+El Centro de Control de Operación (CCO) de Metrocali supervisa ~1000 buses que emiten datagramas cada 20-30 s via GPRS. El sistema recibe entre 2.5 y 3 millones de eventos diarios. El piloto cubre un año de datos (~900 M registros anuales estimados) con **111 rutas activas** (archivo `lines-241-ActiveGT.csv`, donde "241" es el identificador del plan de operación — `PLANVERSIONID=241`) y tiene dos objetivos principales:
 
 1. **Monitoreo en tiempo real:** visualizar posición de todos los buses en un mapa de Cali.
 2. **Análisis histórico:** calcular velocidad promedio por ruta (`lineId`) por mes.
@@ -50,7 +50,7 @@ El Centro de Control de Operación (CCO) de Metrocali supervisa ~1000 buses que 
 |---|---|
 | **Atributo de calidad** | Rendimiento / Performance |
 | **Fuente del estímulo** | Operador del CCO que solicita reporte mensual de todas las rutas activas |
-| **Estímulo** | Solicitud de cálculo para las 241 rutas activas sobre un año completo de datos (~900 M registros) |
+| **Estímulo** | Solicitud de cálculo para las 111 rutas activas del piloto sobre un año completo de datos (~900 M registros) |
 | **Artefacto** | Módulo de cálculo de velocidad (V1 / V2 / V3 según el despliegue) |
 | **Entorno** | Operación normal; servidor del CCO disponible |
 | **Respuesta** | El sistema calcula y muestra velocidades promedio por ruta por mes |
