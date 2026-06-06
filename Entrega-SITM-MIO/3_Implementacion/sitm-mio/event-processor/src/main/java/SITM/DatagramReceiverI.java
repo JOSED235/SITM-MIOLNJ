@@ -29,9 +29,7 @@ public class DatagramReceiverI implements DatagramReceiver {
 
     @Override
     public void postDatagram(Datagram data, Current current) {
-        
-
-          if (archiveService != null) {
+        if (archiveService != null) {
             try {
                 archiveService.archiveDatagramAsync(data);
             } catch (com.zeroc.Ice.LocalException e) {
@@ -39,22 +37,17 @@ public class DatagramReceiverI implements DatagramReceiver {
             }
         }
 
-        // 1. Normalización de coordenadas
         Location loc = new Location();
         loc.latitude = data.latitude / 10000000.0;
         loc.longitude = data.longitude / 10000000.0;
 
-        // 2. Crear actualización para el visualizador
         BusUpdate update = new BusUpdate();
         update.busId = data.busId;
         update.pos = loc;
         update.lineId = data.lineId;
         update.timestamp = data.datagramDate;
-        // 3. Notificar a suscriptores (Pub-Sub)
-        notify(update);
 
-        // 4. Enviar a Data Center de forma asíncrona (si está disponible)
-      
+        notify(update);
 
         System.out.println("Procesado Datagrama - Bus: " + data.busId + " Lat: " + loc.latitude + " Lon: " + loc.longitude);
     }
@@ -65,10 +58,9 @@ public class DatagramReceiverI implements DatagramReceiver {
             for (MonitoringSubscriberPrx sub : subscribers) {
                 try {
                     sub.updateLocation(update);
-                    Thread.sleep(2000);
                 } catch (com.zeroc.Ice.LocalException e) {
                     toRemove.add(sub);
-                }catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }

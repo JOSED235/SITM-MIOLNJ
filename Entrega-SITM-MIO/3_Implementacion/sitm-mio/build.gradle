@@ -34,9 +34,18 @@ subprojects {
             }
         }
 
-        // El plugin application ya copia todas las dependencias a build/libs
-        // con la tarea installDist / distributions. Solo ajustamos el manifiesto.
+        // Tarea para copiar todas las dependencias (externas y del proyecto) a build/libs
+        task copyDeps(type: Copy) {
+            // Usamos un closure para diferir la resolución de la configuración
+            from { configurations.runtimeClasspath }
+            into "${buildDir}/libs"
+        }
+
+        // Aseguramos que las dependencias se copien antes de crear el JAR
+        jar.dependsOn copyDeps
+
         jar {
+            // Usamos doFirst para que la resolución de runtimeClasspath ocurra solo al ejecutar la tarea
             doFirst {
                 manifest {
                     attributes(

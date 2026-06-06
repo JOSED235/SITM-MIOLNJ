@@ -2,53 +2,96 @@
 <html>
 <head>
     <title>SITM-MIO Monitoring</title>
+    <meta charset="UTF-8">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background-color: #f0f0f0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { overflow: hidden; background: #e0e0e0; }
+        #map {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <script>
-        // Configuración de Leaflet con optimizaciones de renderizado
-        var map = L.map('map', {
-            fadeAnimation: false,
-            zoomAnimation: true,
-            markerZoomAnimation: true,
-            updateWhenIdle: true,
-            updateWhenZooming: false
-        }).setView([3.42, -76.52], 12); // Cali
-
-        // Usar un servidor de tiles más rápido o con mejor respuesta
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            keepBuffer: 2 // Mantener más tiles en memoria para evitar huecos
-        }).addTo(map);
-
-        // Forzar el redimensionamiento del mapa de forma agresiva
-        function fixMapSize() {
-            map.invalidateSize();
-        }
-        
-        window.addEventListener('load', function() {
-            setTimeout(fixMapSize, 100);
-            setTimeout(fixMapSize, 1000);
-            setTimeout(fixMapSize, 3000);
-        });
-
         var markers = {};
+        var map = null;
+        var pollCount = 0;
+
+        /*
+         * Espera activamente a que el contenedor tenga dimensiones reales antes
+         * de inicializar Leaflet. En JavaFX WebView el layout ocurre despues del
+         * DOMContentLoaded, por lo que leer offsetWidth inmediatamente devuelve 0.
+         */
+        function tryInit() {
+            var el = document.getElementById('map');
+            var w = el.offsetWidth;
+            var h = el.offsetHeight;
+
+            if ((w < 100 || h < 100) && pollCount < 80) {
+                pollCount++;
+                setTimeout(tryInit, 50);
+                return;
+            }
+
+            if (map) return;
+            console.log("Iniciando mapa con dimensiones: " + w + "x" + h);
+
+            map = L.map('map', {
+                fadeAnimation: false,
+                zoomAnimation: false,
+                markerZoomAnimation: false
+            }).setView([3.42, -76.52], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Alinear tiles una vez que Leaflet ya tiene las dimensiones correctas
+            setTimeout(function() {
+                map.invalidateSize({ animate: false, pan: false });
+            }, 150);
+        }
+
+        function forceResize() {
+            if (!map) {
+                tryInit();
+                return;
+            }
+            map.invalidateSize({ animate: false, pan: false });
+        }
 
         function updateBus(busId, lat, lng, lineId, time) {
+            if (!map) return;
+            var pos = [lat, lng];
             if (markers[busId]) {
-                markers[busId].setLatLng([lat, lng]);
-                markers[busId].setPopupContent("<b>Bus:</b> " + busId + "<br><b>Ruta:</b> " + lineId + "<br><b>Hora:</b> " + time);
+                markers[busId].setLatLng(pos);
+                markers[busId].getPopup().setContent(
+                    "<b>Bus:</b> " + busId + "<br><b>Ruta:</b> " + lineId + "<br><b>Hora:</b> " + time
+                );
             } else {
-                var marker = L.marker([lat, lng]).addTo(map);
-                marker.bindPopup("<b>Bus:</b> " + busId + "<br><b>Ruta:</b> " + lineId + "<br><b>Hora:</b> " + time);
+                var marker = L.circleMarker(pos, {
+                    radius: 8,
+                    fillColor: "#0078ff",
+                    color: "#ffffff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                }).addTo(map);
+                marker.bindPopup(
+                    "<b>Bus:</b> " + busId + "<br><b>Ruta:</b> " + lineId + "<br><b>Hora:</b> " + time
+                );
                 markers[busId] = marker;
             }
         }
+
+        document.addEventListener('DOMContentLoaded', tryInit);
     </script>
 </body>
 </html>

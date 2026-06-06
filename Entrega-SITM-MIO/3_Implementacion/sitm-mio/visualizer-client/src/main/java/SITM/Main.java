@@ -27,6 +27,33 @@ public class Main extends Application {
         WebView webView = new WebView();
         webEngine = webView.getEngine();
 
+        // Forzar recálculo del mapa cuando el WebView cambia de tamaño
+        webView.widthProperty().addListener((obs, oldVal, newVal) -> {
+            Platform.runLater(() -> {
+                try {
+                    webEngine.executeScript("if(typeof forceResize === 'function') forceResize();");
+                } catch (Exception ignored) {}
+            });
+        });
+        webView.heightProperty().addListener((obs, oldVal, newVal) -> {
+            Platform.runLater(() -> {
+                try {
+                    webEngine.executeScript("if(typeof forceResize === 'function') forceResize();");
+                } catch (Exception ignored) {}
+            });
+        });
+
+        // Asegurar que el mapa se ajuste al cargar
+        webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+            if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                Platform.runLater(() -> {
+                    try {
+                        webEngine.executeScript("if(typeof forceResize === 'function') forceResize();");
+                    } catch (Exception ignored) {}
+                });
+            }
+        });
+
         URL url = getClass().getResource("/map.html");
         if (url != null) {
             webEngine.load(url.toExternalForm());
@@ -36,6 +63,18 @@ public class Main extends Application {
 
         stage.setTitle("SITM-MIO - Monitoreo en Tiempo Real");
         stage.setScene(new Scene(webView, 1024, 768));
+
+        // Disparar forceResize despues de que la ventana este completamente visible
+        // para que Leaflet lea las dimensiones reales del WebView
+        stage.setOnShown(e -> new Thread(() -> {
+            try { Thread.sleep(400); } catch (Exception ignored) {}
+            Platform.runLater(() -> {
+                try {
+                    webEngine.executeScript("if(typeof forceResize === 'function') forceResize();");
+                } catch (Exception ignored) {}
+            });
+        }).start());
+
         stage.show();
 
         new Thread(this::initIce).start();
@@ -62,11 +101,13 @@ public class Main extends Application {
 
             MonitoringSubscriberI servant = new MonitoringSubscriberI(update -> {
                 Platform.runLater(() -> {
-                    String script = String.format(java.util.Locale.US,
-                            "updateBus(%d, %f, %f, %d, '%s')",
-                            update.busId, update.pos.latitude, update.pos.longitude,
-                            update.lineId, update.timestamp);
-                    webEngine.executeScript(script);
+                    try {
+                        String script = String.format(java.util.Locale.US,
+                                "if(typeof updateBus === 'function') updateBus(%d, %f, %f, %d, '%s')",
+                                update.busId, update.pos.latitude, update.pos.longitude,
+                                update.lineId, update.timestamp);
+                        webEngine.executeScript(script);
+                    } catch (Exception ignored) {}
                 });
             });
 

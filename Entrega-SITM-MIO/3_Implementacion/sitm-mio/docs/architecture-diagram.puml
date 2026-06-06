@@ -1,0 +1,321 @@
+@startuml SITM-MIO_Architecture_Complete
+
+' ============================================================
+' ESTILOS
+' ============================================================
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontSize 11
+skinparam defaultFontName Arial
+
+skinparam node {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+  BorderThickness 2
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor #FFF9C4
+  BorderColor #F57F17
+  BorderThickness 1
+}
+skinparam database {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam artifact {
+  BackgroundColor #FCE4EC
+  BorderColor #B71C1C
+}
+skinparam package {
+  BorderColor #6A1B9A
+  BorderThickness 2
+  FontStyle bold
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #F9A825
+}
+skinparam arrow {
+  Color #37474F
+  FontSize 9
+}
+skinparam file {
+  BackgroundColor #F3E5F5
+  BorderColor #6A1B9A
+}
+
+title "SITM-MIO — Diagrama de Despliegue Completo\nZeroC Ice 3.7.10 · Java 17 · Gradle 8.6 · Leaflet.js 1.9.4"
+
+' ============================================================
+' ARCHIVOS DE DATOS (compartidos)
+' ============================================================
+package "Datos de Entrada (CSV)" as DATA_PKG #F5F5F5 {
+  file "datagrams-MiniPilot.csv\n(dataset piloto)" as CSV_MINI
+  file "datagrams4Pilot.csv\n(dataset completo, 9x)" as CSV_FULL
+  file "lines-241-ActiveGT.csv\n(rutas activas)" as CSV_LINES
+}
+
+' ============================================================
+' CONTRATOS ICE (sitm.ice)
+' ============================================================
+package "contracts — Contratos Compartidos (sitm.ice)" as CONTRACTS_PKG #FFF3E0 {
+  artifact "contracts.jar\n(generado por Ice-Builder)" as CONTRACTS_JAR
+
+  note right of CONTRACTS_JAR
+    Interfaces Ice:
+    • DatagramReceiver
+      - postDatagram(Datagram)
+      - subscribe(MonitoringSubscriber*)
+    • ArchiveService [ami]
+      - archiveDatagram(Datagram)
+    • MonitoringSubscriber
+      - updateLocation(BusUpdate)
+      - updateLocations(BusUpdateSeq)
+    • ReportProvider
+      - getAverageSpeed(lineId, month, year)
+      - getMonthlyReports(year)
+    • SpeedWorker
+      - computeSpeeds(DatagramSeq)
+    Structs: Datagram, BusUpdate,
+    Location, SpeedReport
+  end note
+}
+
+' ============================================================
+' SUBSISTEMA A — MONITOREO EN TIEMPO REAL
+' ============================================================
+package "Subsistema A — Monitoreo en Tiempo Real" as MON_PKG #E8F5E9 {
+
+  ' --- bus-simulator ---
+  node "Nodo Simulador\n(Workstation CCO-test)" as SIM_NODE {
+    artifact "bus-simulator.jar" as BUS_JAR
+    component "SITM.Main\n(Bus Simulator)" as BS_MAIN
+    note bottom of BS_MAIN
+      Lee CSV línea por línea
+      Construye Datagram
+      Envía cada 500 ms
+      PathResolver: busca CSV en
+      ruta exacta → /opt/sitm-mio/
+      → data/<nombre>
+    end note
+  }
+
+  ' --- event-processor ---
+  node "Nodo Event Processor\n[Ice Server TCP :10000]" as EP_NODE {
+    artifact "event-processor.jar" as EP_JAR
+    component "DatagramReceiverI\n[Servant Ice]\n[Pub-Sub Broker]" as EP_SERV
+    component "List<MonitoringSubscriberPrx>\n[Registro de suscriptores]" as PUBSUB_REG
+    note right of EP_SERV
+      1. postDatagram(d):
+         • lat = d.latitude / 10_000_000.0
+         • lon = d.longitude / 10_000_000.0
+         • archiveDatagramAsync(d) [AMI]
+         • notify(BusUpdate)
+      2. subscribe(sub):
+         • agrega proxy a la lista
+      3. notify(update):
+         • itera suscriptores
+         • elimina los que lancen
+           LocalException
+    end note
+  }
+
+  ' --- data-center ---
+  node "Nodo Data Center\n[Ice Server TCP :10001]" as DC_NODE {
+    artifact "data-center.jar" as DC_JAR
+    component "ArchiveServiceI\n[Servant Ice / AMI]" as ARCH_SERV
+    component "ReportProviderI\n[Servant Ice]" as REPORT_SERV
+    database "DataWarehouse\nArrayList<Datagram>\n(en memoria)" as DW
+    note right of ARCH_SERV
+      Recibe async, no bloquea
+      al event-processor
+    end note
+    note right of REPORT_SERV
+      getAverageSpeed(lineId, month, year):
+      • groupByTrip(lineId, month, year)
+      • ordena por datagramDate
+      • Σ(Δodómetro) / Σ(Δsegundos) × 3.6
+      • filtra kmh > 120 (atípicos)
+    end note
+  }
+
+  ' --- visualizer-client ---
+  node "Nodo Visualizador\n(Escritorio CCO)" as VIZ_NODE {
+    artifact "visualizer-client.jar" as VIZ_JAR
+    component "SITM.Launcher → SITM.Main\n[JavaFX Application]" as VIZ_APP
+    component "MonitoringSubscriberI\n[Servant Ice — Callback]\n[Puerto dinámico vía cfg]" as MSUB
+    component "JavaFX Stage\n+ WebView (WebKit)" as JFX_VIEW
+    component "map.html\nLeaflet.js 1.9.4\n+ OpenStreetMap tiles" as MAP_HTML
+    database "markers{busId → Marker}\n(estado en memoria JS)" as MARKERS_STATE
+    note right of VIZ_APP
+      initIce():
+      • propertyToProxy("EventProcessor.Proxy")
+      • checkedCast → DatagramReceiverPrx
+      • createObjectAdapterWithEndpoints
+      • adapter.add(MonitoringSubscriberI)
+      • receiver.subscribe(callbackProxy)
+      onUpdate:
+      • Platform.runLater()
+      • webEngine.executeScript(
+          "updateBus(id,lat,lng,line,ts)")
+    end note
+    note bottom of MAP_HTML
+      tryInit() polling:
+      espera offsetWidth > 100px
+      antes de L.map() para evitar
+      tiles dispersos en WebView.
+      Usa 100vw/100vh (CSS).
+    end note
+  }
+}
+
+' ============================================================
+' SUBSISTEMA B — CÁLCULO DE VELOCIDADES
+' ============================================================
+package "Subsistema B — Cálculo de Velocidades" as SPEED_PKG #E8EAF6 {
+
+  ' --- speed-calculator V1/V2 ---
+  node "Nodo Análisis\n(1 máquina — V1 y V2)" as CALC_NODE {
+    artifact "speed-calculator.jar" as CALC_JAR
+    component "SpeedCalculatorV1\n[Secuencial — 1 hilo]" as V1_COMP
+    component "SpeedCalculatorV2\n[ExecutorService\nN = availableProcessors()]" as V2_COMP
+    component "SpeedEngine\n[Lógica compartida V1/V2]" as SE_COMP
+    note right of V2_COMP
+      Fork-Join por lineId:
+      pool.submit(() → SpeedEngine
+        .computeForLine(lineId, data))
+      Speedup ≈ 0.7–0.85 × N cores
+    end note
+  }
+
+  ' --- speed-master ---
+  node "Nodo Master V3\n(Coordinador)" as MASTER_NODE {
+    artifact "speed-master.jar" as MASTER_JAR
+    component "SITM.Main (Master)\n[Scatter-Gather]" as MASTER_COMP
+    note right of MASTER_COMP
+      1. Lee speed-master.cfg
+         Worker.Count, Worker.0..N
+      2. checkedCast a cada worker
+         (descarta no disponibles)
+      3. groupByLineId(csv)
+      4. round-robin: Worker[i%N]
+         ← datagramas de lineIds[i]
+      5. ExecutorService: envía
+         computeSpeeds(partition[i])
+         en paralelo a cada worker
+      6. Future.get() agrega resultados
+      7. Ordena e imprime tabla
+    end note
+  }
+
+  ' --- speed-worker 0 ---
+  node "Nodo Worker 0\n[Ice Server TCP :10100]" as W0_NODE {
+    artifact "speed-worker.jar" as W0_JAR
+    component "SpeedWorkerI\n[Worker 0]" as SW0_COMP
+  }
+
+  ' --- speed-worker 1 ---
+  node "Nodo Worker 1\n[Ice Server TCP :10101]" as W1_NODE {
+    artifact "speed-worker.jar" as W1_JAR
+    component "SpeedWorkerI\n[Worker 1]" as SW1_COMP
+    note right of SW1_COMP
+      computeSpeeds(partition):
+      • groupByTrip(datagramas)
+      • ordena por datagramDate
+      • Σ(Δodóm.) / Σ(Δseg.) × 3.6
+      • filtra > 120 km/h
+      • retorna SpeedReport[]
+    end note
+  }
+
+  node "Nodo Worker N\n[Ice Server TCP :101XX]" as WN_NODE {
+    component "SpeedWorkerI\n[Worker N]" as SWN_COMP
+    note right of SWN_COMP
+      Agregar workers:
+      solo editar speed-master.cfg
+      Worker.Count = N+1
+      Worker.N = SpeedWorker:
+        default -h host -p 101XX
+    end note
+  }
+}
+
+' ============================================================
+' RELACIONES — SUBSISTEMA A (MONITOREO)
+' ============================================================
+
+CSV_MINI --> BS_MAIN : lee (PathResolver)
+BS_MAIN --> EP_SERV : <<Ice RPC TCP :10000>>\npostDatagram(Datagram)
+
+EP_SERV --> PUBSUB_REG : mantiene lista
+EP_SERV --> ARCH_SERV : <<Ice AMI async>>\narchiveDatagramAsync(Datagram)
+ARCH_SERV --> DW : store(Datagram)
+EP_SERV --> MSUB : <<Ice RPC callback>>\nupdateLocation(BusUpdate)
+
+MSUB --> VIZ_APP : Platform.runLater()\nupdateCallback
+VIZ_APP --> JFX_VIEW : webEngine.executeScript(\n"updateBus(id,lat,lng,...)")
+JFX_VIEW --> MAP_HTML : render JavaScript
+MAP_HTML --> MARKERS_STATE : markers[busId].setLatLng(pos)
+
+VIZ_APP --> REPORT_SERV : <<Ice RPC TCP :10001>>\ngetAverageSpeed(lineId, m, y)
+REPORT_SERV --> DW : query groupByTrip
+
+' ============================================================
+' RELACIONES — SUBSISTEMA B (VELOCIDADES V1/V2)
+' ============================================================
+
+CSV_MINI --> V1_COMP : lee secuencial
+CSV_MINI --> V2_COMP : lee concurrente
+V1_COMP --> SE_COMP : delega computación
+V2_COMP --> SE_COMP : delega computación (por hilo)
+
+' ============================================================
+' RELACIONES — SUBSISTEMA B (VELOCIDADES V3)
+' ============================================================
+
+CSV_MINI --> MASTER_COMP : lee y particiona\npor lineId (round-robin)
+CSV_FULL --> MASTER_COMP : (alternativa con dataset completo)
+
+MASTER_COMP --> SW0_COMP : <<Ice RPC TCP :10100>>\ncomputeSpeeds(DatagramSeq)
+MASTER_COMP --> SW1_COMP : <<Ice RPC TCP :10101>>\ncomputeSpeeds(DatagramSeq)
+MASTER_COMP --> SWN_COMP : <<Ice RPC TCP :101XX>>\ncomputeSpeeds(DatagramSeq)
+
+SW0_COMP --> MASTER_COMP : SpeedReport[] (retorno)
+SW1_COMP --> MASTER_COMP : SpeedReport[] (retorno)
+SWN_COMP --> MASTER_COMP : SpeedReport[] (retorno)
+
+' ============================================================
+' DEPENDENCIA DE CONTRATOS
+' ============================================================
+
+CONTRACTS_JAR ..> BUS_JAR : <<compila>>
+CONTRACTS_JAR ..> EP_JAR : <<compila>>
+CONTRACTS_JAR ..> DC_JAR : <<compila>>
+CONTRACTS_JAR ..> VIZ_JAR : <<compila>>
+CONTRACTS_JAR ..> MASTER_JAR : <<compila>>
+CONTRACTS_JAR ..> W0_JAR : <<compila>>
+CONTRACTS_JAR ..> W1_JAR : <<compila>>
+
+' ============================================================
+' PUERTOS Y CONFIGURACIONES
+' ============================================================
+note as PORTS_NOTE
+  <b>Puertos ICE:</b>
+  • event-processor  → :10000 (DatagramReceiver)
+  • data-center      → :10001 (ArchiveService, ReportProvider)
+  • speed-worker[0]  → :10100 (SpeedWorker)
+  • speed-worker[1]  → :10101 (SpeedWorker1)
+  • visualizer-client→ dinámico (MonitoringSubscriberI)
+
+  <b>Archivos .cfg:</b>
+  • bus-simulator.cfg     → EventProcessor.Proxy=...:10000
+  • event-processor.cfg   → endpoints :10000, DataCenter.Proxy=...:10001
+  • data-center.cfg       → endpoints :10001
+  • visualizer-client.cfg → EventProcessor.Proxy=...:10000
+                            ReportProvider.Proxy=...:10001
+  • speed-master.cfg      → Worker.Count=2, Worker.0=...:10100, Worker.1=...:10101
+  • speed-worker.cfg      → SpeedWorker.Endpoints=...:10100
+end note
+
+@enduml

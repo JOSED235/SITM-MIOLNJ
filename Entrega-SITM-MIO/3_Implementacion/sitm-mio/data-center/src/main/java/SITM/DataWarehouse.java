@@ -118,7 +118,7 @@ public class DataWarehouse {
     private LocalDateTime parseDate(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
-            return LocalDateTime.parse(raw.trim().toUpperCase(), FORMATTER);
+            return LocalDateTime.parse(raw.trim(), FORMATTER);
         } catch (DateTimeParseException e) {
             return null;
         }
