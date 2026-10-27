@@ -268,7 +268,7 @@ Implementación V3 del patrón Master-Worker sobre Ice RPC:
 | `event-processor` | 10000 | `DatagramReceiver` |
 | `data-center` | 10001 | `ArchiveService`, `ReportProvider` |
 | `speed-worker` (instancia 0) | 10100 | `SpeedWorker` |
-| `speed-worker` (instancia 1) | 10101 | `SpeedWorker1` |
+| `speed-worker` (instancia 1) | 10101 | `SpeedWorker` (misma identidad; cambia el puerto) |
 | `visualizer-client` (callback) | dinámico | `VisualizerCallback` |
 
 Los archivos `.cfg` de cada módulo se encuentran en `src/main/resources/` y se incluyen automáticamente en el classpath del JAR.

@@ -182,7 +182,7 @@ java -jar speed-calculator/build/libs/speed-calculator.jar v2 data/chunck.csv
 
 # V3 (3 terminales)
 java -jar speed-worker/build/libs/speed-worker.jar
-java "-DSpeedWorker.Endpoints=default -h localhost -p 10101" "-DSpeedWorker.Identity=SpeedWorker1" -jar speed-worker/build/libs/speed-worker.jar
+java -jar speed-worker/build/libs/speed-worker.jar 10101 --Ice.MessageSizeMax=0  # Ice no lee -D; el puerto va como argumento. Ver Experiment-Results.md, sección 2r
 java -jar speed-master/build/libs/speed-master.jar data/chunck.csv
 ```
 **Verificación:** Las tablas de V1, V2 y V3 producen los mismos valores de `VelProm(km/h)` para cada `(lineId, mes/año)`. Diferencia máxima admitida: < 0.5%.
